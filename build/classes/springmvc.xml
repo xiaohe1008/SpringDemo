@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+     xmlns:task="http://www.springframework.org/schema/task"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop
+        https://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+        https://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/mvc
+        https://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/task
+        https://www.springframework.org/schema/task/spring-task.xsd">
+        
+       <!-- 告知spring创建容器时要扫描的包 -->    
+     <context:component-scan base-package="com.hemaobin"></context:component-scan>   
+     
+     <!-- 任务注解扫描 -->
+     <task:annotation-driven />
+      
+      <!-- 扫描任务 -->
+       <context:component-scan base-package="com.hemaobin.webDemo.job" />
+      
+     <!-- 配置springmvc的视图解析器 -->   
+       <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+       		<property name="prefix" value="/WEB-INF/page/"></property>
+       		<property name="suffix" value=".jsp"></property>
+       </bean>
+       
+       
+           <!-- 配置spring mvc的注解驱动 -->  
+       <mvc:annotation-driven conversion-service="converterService"></mvc:annotation-driven>
+       
+        <!-- 配置自定义类型转换器：它的配置方式是采用注册服务的方式来实现 -->
+       <bean id="converterService" class="org.springframework.context.support.ConversionServiceFactoryBean">
+       		<property name="converters">
+       			<set>
+       				<bean class="com.hemaobin.webDemo.converter.StringToDateConverter"></bean>
+       			</set>
+       		</property>
+       </bean>
+       
+       
+     
+       <!-- 设置静态资源不过滤 -->
+       <mvc:resources location="/css/" mapping="/css/**"/>
+       <mvc:resources location="/js/" mapping="/js/**"/>
+       <mvc:resources location="/images/" mapping="/imsges/**"/>
+       
+       
+       <!-- 配置业务层 -->
+    <bean id="userService" class="com.hemaobin.webDemo.service.impl.UserServiceImpl">
+    	<property name="userDao" ref="userDao"></property>
+    </bean>
+    <!-- 邮件业务层包含邮件参数 -->
+    <bean id="emailService" class="com.hemaobin.webDemo.service.impl.EmailServiceImpl">
+    	<property name="smtpHost"  value="smtp.qq.com"></property>
+    	<property name="yourEmail" value="1766282543@qq.com"></property>
+    	<property name="secretKey" value="123456789"></property>
+    </bean>
+    
+    <!-- 配置持久层 -->
+    <bean id="userDao" class="com.hemaobin.webDemo.atom.impl.UserDaoImpl">
+    	<property name="dataSource" ref="dataSource"></property>
+    </bean>
+    
+    <!-- 配置数据源 -->
+   <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+       <property name="DriverClassName" value="com.mysql.cj.jdbc.Driver"></property>
+       <property name="url" value="jdbc:mysql://localhost:3306/finaltest?serverTimezone=GMT%2B8"></property>
+       <property name="username" value="root"></property>
+       <property name="password" value="123456"></property>
+   </bean>
+   
+   <!-- 配置事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    
+    <!-- 配置事务通知 -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="*" read-only="false" />
+            <tx:method name="find*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    
+    <!-- 配置aop -->
+    <aop:config>
+        <aop:pointcut expression="execution(* com.hemaobin.service.impl.*.*(..))" id="pt1"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="pt1"/>
+    </aop:config>
+</beans>
